@@ -1,0 +1,22 @@
+[package]
+name = "rust_apps"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.92"
+rclrs = "0.4.1"
+sensor_msgs = "*"
+geometry_msgs = "*"
+
+[[bin]]
+name = "scan_subscriber_node"
+path = "src/scan_subscriber.rs"
+
+[[bin]]
+name = "cmd_vel_publisher_node"
+path = "src/cmd_vel_publisher.rs"
+
+[[bin]]
+name = "obstacle_avoidance_node"
+path = "src/obstacle_avoidance.rs"

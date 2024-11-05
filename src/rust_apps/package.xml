@@ -1,0 +1,15 @@
+<package format="3">
+  <name>rust_apps</name>
+  <version>0.0.0</version>
+  <description>ROS2 Rust main package</description>
+  <maintainer email="user@gmail.com">user</maintainer>
+  <license>MIT</license>
+
+  <depend>rclrs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+
+  <export>
+    <build_type>ament_cargo</build_type>
+  </export>
+</package>
