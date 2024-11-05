@@ -29,181 +29,237 @@ This workshop teaches:
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-## Building the Project
+## Understanding Rust and ROS2
 
-1. Source ROS2:
+### What is Cargo?
+Cargo is Rust's package manager and build tool. It handles dependencies, project building, and testing. With Cargo, you can:
+- Compile your code
+- Download and update third-party packages (crates)
+- Manage project configurations
+
+### What are Crates?
+Crates are Rust's package units. There are two types:
+- Library Crates: Code that can be used by other crates
+- Binary Crates: Code that can be compiled into an executable
+
+Visit [Crates.io](https://crates.io) to explore available crates.
+
+### ROS2 Package Structure
+Essential files in a ROS2 Rust package:
+- `src/` directory: Contains source files
+- `Cargo.toml`: Defines dependencies and compiler configurations
+- `Cargo.lock`: Contains exact dependency information (automatically maintained)
+- `package.xml`: ROS2 package metadata and dependencies
+
+## ROS2 Programming with Rust
+
+### 1. Basic Rust Concepts
+
+#### Functions
+```rust
+// Basic function syntax
+fn function_name(variable: type) -> return_type {
+    // Function body
+}
+
+// Main function with Result
+fn main() -> Result<(), Error> {
+    // Main function body
+    Ok(())
+}
+```
+
+#### Variables and Mutability
+```rust
+// Mutable variable
+let mut message = std_msgs::msg::String::default();
+```
+
+### 2. ROS2 Node Creation Steps
+
+#### a. Create Context
+```rust
+let context = rclrs::Context::new(env::args())?;
+```
+
+#### b. Create Node
+```rust
+// Function signature
+pub fn create_node(
+    context: &Context,
+    node_name: &str
+) -> Result<Arc<Node>, RclrsError>
+
+// Usage
+let node = rclrs::create_node(&context, "node_name")?;
+```
+
+#### c. Create Subscriber
+```rust
+// Function signature
+pub fn create_subscription<T, Args>(
+    &self,
+    topic: &str,
+    qos: QoSProfile,
+    callback: impl SubscriptionCallback<T, Args>
+) -> Result<Arc<Subscription<T>>, RclrsError>
+where
+    T: Message
+
+// Example usage
+let _subscription = node.create_subscription::<sensor_msgs::msg::LaserScan, _>(
+    "scan",
+    rclrs::QOS_PROFILE_DEFAULT,
+    move |msg: sensor_msgs::msg::LaserScan| {
+        println!("Angle min: '{}'", msg.angle_min);
+    },
+)?;
+```
+
+#### d. Create Publisher
+```rust
+// Function signature
+pub fn create_publisher<T>(
+    &self,
+    topic: &str,
+    qos: QoSProfile
+) -> Result<Arc<Publisher<T>>, RclrsError>
+where
+    T: Message
+
+// Example usage
+let publisher = node.create_publisher::<Twist>("cmd_vel", rclrs::QOS_PROFILE_DEFAULT)?;
+```
+
+### 3. Node Execution Methods
+
+#### Spin (Outside Loop)
+```rust
+rclrs::spin(node).map_err(|err| err.into())
+```
+
+#### Spin Once (Inside Loop)
+```rust
+rclrs::spin_once(node.clone(), Some(std::time::Duration::from_millis(500)));
+```
+
+### 4. Working with ROS2 Messages
+
+#### Message Inspection
 ```bash
-source /opt/ros/humble/setup.bash
+# View topic data
+ros2 topic echo /scan
+
+# Check message type
+ros2 topic info /scan
+
+# View message structure
+ros2 interface show sensor_msgs/msg/LaserScan
 ```
 
-2. Build the workspace:
-```bash
-cd ros2_rust_workshop/ros_ws
-colcon build
+#### Quality of Service (QoS) Profiles
+Available profiles:
+```rust
+QOS_PROFILE_CLOCK
+QOS_PROFILE_DEFAULT
+QOS_PROFILE_PARAMETERS
+QOS_PROFILE_PARAMETER_EVENTS
+QOS_PROFILE_SENSOR_DATA
+QOS_PROFILE_SERVICES_DEFAULT
+QOS_PROFILE_SYSTEM_DEFAULT
 ```
 
-3. Source the workspace:
-```bash
-source install/setup.bash
-```
+## Implementation Examples
 
-## Developing Rust Code for ROS2
-
-### Creating a New ROS2 Rust Package
-
-1. Create a new Rust package:
-```bash
-cd ~/ros2_rust_workshop/ros_ws/src
-cargo new rust_apps
-```
-
-2. Create a package.xml file in the rust_apps directory:
-```xml
-<?xml version="1.0"?>
-<package format="3">
-  <name>rust_apps</name>
-  <version>0.0.0</version>
-  <description>ROS2 Rust main package</description>
-  <maintainer email="user@gmail.com">user</maintainer>
-  <license>MIT</license>
-
-  <depend>rclrs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>geometry_msgs</depend>
-
-  <export>
-    <build_type>ament_cargo</build_type>
-  </export>
-</package>
-```
-
-3. Configure Cargo.toml:
-```toml
-[package]
-name = "rust_apps"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-rclrs = "*"
-anyhow = "1.0"
-sensor_msgs = "*"
-geometry_msgs = "*"
-
-[[bin]]
-name = "scan_subscriber_node"
-path = "src/scan_subscriber.rs"
-
-[[bin]]
-name = "cmd_vel_publisher_node"
-path = "src/cmd_vel_publisher.rs"
-
-[[bin]]
-name = "obstacle_avoidance_node"
-path = "src/obstacle_avoidance.rs"
-```
-
-### Creating ROS2 Nodes in Rust
-
-#### Basic Node Structure
+### 1. LaserScan Subscriber
 ```rust
 use std::env;
 use anyhow::{Error, Result};
 
 fn main() -> Result<(), Error> {
-    // Initialize ROS context
     let context = rclrs::Context::new(env::args())?;
+    let node = rclrs::create_node(&context, "scan_subscriber")?;
+    let mut num_messages: usize = 0;
+
+    let _subscription = node.create_subscription::<sensor_msgs::msg::LaserScan, _>(
+        "scan",
+        rclrs::QOS_PROFILE_DEFAULT,
+        move |msg: sensor_msgs::msg::LaserScan| {
+            num_messages += 1;
+            println!("Back range[m]: '{:.2}'", msg.ranges[0]);
+            println!("Ranges size: '{}'", msg.ranges.len());
+            println!("Angle min: '{}'", msg.angle_min);
+            println!("Angle max: '{}'", msg.angle_max);
+            println!("(Got {} messages so far)", num_messages);
+        },
+    )?;
+
+    rclrs::spin(node).map_err(|err| err.into())
+}
+```
+
+### 2. Cmd Vel Publisher
+```rust
+use std::env;
+use anyhow::{Error, Result};
+use geometry_msgs::msg::Twist as Twist;
+
+fn main() -> Result<(), Error> {
+    let context = rclrs::Context::new(env::args())?;
+    let node = rclrs::create_node(&context, "cmd_vel_publisher")?;
+    let publisher = node.create_publisher::<Twist>("cmd_vel", rclrs::QOS_PROFILE_DEFAULT)?;
     
-    // Create node
-    let node = rclrs::create_node(&context, "node_name")?;
-    
-    // Node implementation here
-    
+    let mut cmd_vel_message = Twist::default();
+    let mut velocity = 1.0;
+    let velocity_threshold = 1.0;
+    let velocity_decrease = 0.05;
+
+    while context.ok() {
+        cmd_vel_message.linear.x = velocity;
+        cmd_vel_message.linear.y = velocity;
+        cmd_vel_message.angular.z = 0.0;
+        if velocity < velocity_threshold*(-1.0) {velocity = velocity_threshold}
+        else {velocity-=velocity_decrease};
+        println!("Moving velocity lineal x: {:.2} and angular z: {:.2} m/s.",
+                cmd_vel_message.linear.x, cmd_vel_message.angular.z);
+        publisher.publish(&cmd_vel_message)?;
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    }
     Ok(())
 }
 ```
 
-#### Creating a Publisher
-```rust
-let publisher = node.create_publisher::<Twist>("cmd_vel", rclrs::QOS_PROFILE_DEFAULT)?;
-publisher.publish(&message)?;
-```
+## Building and Running
 
-#### Creating a Subscriber
-```rust
-let _subscription = node.create_subscription::<sensor_msgs::msg::LaserScan, _>(
-    "topic_name",
-    rclrs::QOS_PROFILE_DEFAULT,
-    move |msg: sensor_msgs::msg::LaserScan| {
-        // Handle message here
-    },
-)?;
-```
-
-### Building and Testing
-
-1. Add new dependencies:
+1. Build the package:
 ```bash
-cargo add anyhow
-cargo add rclrs
-```
-
-2. Build specific package:
-```bash
+cd ~/ros2_rust_workshop/ros_ws
 colcon build --packages-select rust_apps
+source install/setup.bash
 ```
 
-3. Test your node:
+2. Run the examples:
 ```bash
-source install/setup.sh
-ros2 run rust_apps <node_name>
-```
-
-## Running the Examples
-
-### 1. Launch the Simulation
-
-In Terminal 1:
-```bash
-cd ~/ros2_rust_workshop/ros_ws
-. install/setup.sh
+# Launch simulation
 ros2 launch champ_config gazebo.launch.py
-```
 
-### 2. Run the Scan Subscriber
-
-In Terminal 2:
-```bash
-cd ~/ros2_rust_workshop/ros_ws
-source install/setup.sh
+# Run subscriber
 ros2 run rust_apps scan_subscriber_node
-```
 
-### 3. Run the Cmd Vel Publisher
-
-In Terminal 2:
-```bash
-cd ~/ros2_rust_workshop/ros_ws
-source install/setup.sh
+# Run publisher
 ros2 run rust_apps cmd_vel_publisher_node
-```
 
-### 4. Run the Obstacle Avoidance Node
-
-In Terminal 2:
-```bash
-cd ~/ros2_rust_workshop/ros_ws
-source install/setup.sh
+# Run obstacle avoidance
 ros2 run rust_apps obstacle_avoidance_node
 ```
 
-To stop the robot movement:
+3. Stop robot:
 ```bash
-ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist '{linear: {x: 0.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}'
+ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist \
+    '{linear: {x: 0.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}'
 ```
 
 ## Project Structure
-
 ```
 ros2_rust_workshop/
 ├── ros_ws/
@@ -219,27 +275,17 @@ ros2_rust_workshop/
 └── ...
 ```
 
-## Common ROS2 Commands for Development
-
-```bash
-# List all topics
-ros2 topic list
-
-# Echo topic data
-ros2 topic echo /topic_name
-
-# Get topic info
-ros2 topic info /topic_name
-
-# Get message structure
-ros2 interface show geometry_msgs/msg/Twist
-```
-
 ## Resources
 
+### ROS2 Rust Resources
 - [ROS2 Rust Repository](https://github.com/ros2-rust/ros2_rust)
-- [Rust Programming Language Book](https://doc.rust-lang.org/book/)
-- [ROS2 Documentation](https://docs.ros.org/en/humble/index.html)
+- [ROS2 Basics in 3 Days (Rust)](https://app.theconstruct.ai/courses/168)
+- [ROS2 with Rust | ROS2 Developers Open Class](https://youtu.be/ShCnUasOBzU?feature=shared)
+- [QoS Documentation](https://docs.ros.org/en/rolling/Concepts/Intermediate/About-Quality-of-Service-Settings.html)
+
+### Rust Learning Resources
+- [The Rust Programming Language Book](https://doc.rust-lang.org/book/)
+- [Best Rust Programming Courses for 2024](https://medium.com/javarevisited/7-best-rust-programming-courses-and-books-for-beginners-in-2021-2ed2311af46c)
 
 ## License
 
