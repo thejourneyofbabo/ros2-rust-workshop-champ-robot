@@ -62,7 +62,7 @@ fn function_name(variable: type) -> return_type {
     // Function body
 }
 
-// Main function with Result
+// Main function with Result type for error handling
 fn main() -> Result<(), Error> {
     // Main function body
     Ok(())
@@ -71,121 +71,43 @@ fn main() -> Result<(), Error> {
 
 #### Variables and Mutability
 ```rust
-// Mutable variable
+// Mutable variable declaration and initialization
 let mut message = std_msgs::msg::String::default();
 ```
 
-### 2. ROS2 Node Creation Steps
+### 2. Creating ROS2 Nodes
 
-#### a. Create Context
+#### Basic Node Creation
 ```rust
+// Initialize ROS context with command line arguments
 let context = rclrs::Context::new(env::args())?;
-```
 
-#### b. Create Node
-```rust
-// Function signature
-pub fn create_node(
-    context: &Context,
-    node_name: &str
-) -> Result<Arc<Node>, RclrsError>
-
-// Usage
+// Create a new node with specified name
 let node = rclrs::create_node(&context, "node_name")?;
 ```
 
-#### c. Create Subscriber
-```rust
-// Function signature
-pub fn create_subscription<T, Args>(
-    &self,
-    topic: &str,
-    qos: QoSProfile,
-    callback: impl SubscriptionCallback<T, Args>
-) -> Result<Arc<Subscription<T>>, RclrsError>
-where
-    T: Message
+### 3. Example Implementations
 
-// Example usage
-let _subscription = node.create_subscription::<sensor_msgs::msg::LaserScan, _>(
-    "scan",
-    rclrs::QOS_PROFILE_DEFAULT,
-    move |msg: sensor_msgs::msg::LaserScan| {
-        println!("Angle min: '{}'", msg.angle_min);
-    },
-)?;
-```
-
-#### d. Create Publisher
-```rust
-// Function signature
-pub fn create_publisher<T>(
-    &self,
-    topic: &str,
-    qos: QoSProfile
-) -> Result<Arc<Publisher<T>>, RclrsError>
-where
-    T: Message
-
-// Example usage
-let publisher = node.create_publisher::<Twist>("cmd_vel", rclrs::QOS_PROFILE_DEFAULT)?;
-```
-
-### 3. Node Execution Methods
-
-#### Spin (Outside Loop)
-```rust
-rclrs::spin(node).map_err(|err| err.into())
-```
-
-#### Spin Once (Inside Loop)
-```rust
-rclrs::spin_once(node.clone(), Some(std::time::Duration::from_millis(500)));
-```
-
-### 4. Working with ROS2 Messages
-
-#### Message Inspection
-```bash
-# View topic data
-ros2 topic echo /scan
-
-# Check message type
-ros2 topic info /scan
-
-# View message structure
-ros2 interface show sensor_msgs/msg/LaserScan
-```
-
-#### Quality of Service (QoS) Profiles
-Available profiles:
-```rust
-QOS_PROFILE_CLOCK
-QOS_PROFILE_DEFAULT
-QOS_PROFILE_PARAMETERS
-QOS_PROFILE_PARAMETER_EVENTS
-QOS_PROFILE_SENSOR_DATA
-QOS_PROFILE_SERVICES_DEFAULT
-QOS_PROFILE_SYSTEM_DEFAULT
-```
-
-## Implementation Examples
-
-### 1. LaserScan Subscriber
+#### 1. LaserScan Subscriber Node
 ```rust
 use std::env;
 use anyhow::{Error, Result};
 
 fn main() -> Result<(), Error> {
+    // Initialize ROS context
     let context = rclrs::Context::new(env::args())?;
+    // Create node named "scan_subscriber"
     let node = rclrs::create_node(&context, "scan_subscriber")?;
+    // Message counter
     let mut num_messages: usize = 0;
 
+    // Create subscription to laser scan topic
     let _subscription = node.create_subscription::<sensor_msgs::msg::LaserScan, _>(
-        "scan",
-        rclrs::QOS_PROFILE_DEFAULT,
+        "scan",                          // Topic name
+        rclrs::QOS_PROFILE_DEFAULT,      // Quality of Service profile
         move |msg: sensor_msgs::msg::LaserScan| {
             num_messages += 1;
+            // Print laser scan data
             println!("Back range[m]: '{:.2}'", msg.ranges[0]);
             println!("Ranges size: '{}'", msg.ranges.len());
             println!("Angle min: '{}'", msg.angle_min);
@@ -194,39 +116,219 @@ fn main() -> Result<(), Error> {
         },
     )?;
 
+    // Spin the node
     rclrs::spin(node).map_err(|err| err.into())
 }
 ```
 
-### 2. Cmd Vel Publisher
+#### 2. Cmd Vel Publisher Node
 ```rust
 use std::env;
 use anyhow::{Error, Result};
 use geometry_msgs::msg::Twist as Twist;
 
 fn main() -> Result<(), Error> {
+    // Initialize ROS context
     let context = rclrs::Context::new(env::args())?;
+    // Create node named "cmd_vel_publisher"
     let node = rclrs::create_node(&context, "cmd_vel_publisher")?;
+    // Create publisher for velocity commands
     let publisher = node.create_publisher::<Twist>("cmd_vel", rclrs::QOS_PROFILE_DEFAULT)?;
     
+    // Initialize velocity message
     let mut cmd_vel_message = Twist::default();
     let mut velocity = 1.0;
     let velocity_threshold = 1.0;
     let velocity_decrease = 0.05;
 
+    // Main loop
     while context.ok() {
+        // Set velocity commands
         cmd_vel_message.linear.x = velocity;
         cmd_vel_message.linear.y = velocity;
         cmd_vel_message.angular.z = 0.0;
-        if velocity < velocity_threshold*(-1.0) {velocity = velocity_threshold}
-        else {velocity-=velocity_decrease};
+        
+        // Update velocity
+        if velocity < velocity_threshold*(-1.0) {
+            velocity = velocity_threshold
+        } else {
+            velocity -= velocity_decrease
+        };
+        
+        // Print current velocity
         println!("Moving velocity lineal x: {:.2} and angular z: {:.2} m/s.",
                 cmd_vel_message.linear.x, cmd_vel_message.angular.z);
+        
+        // Publish velocity command
         publisher.publish(&cmd_vel_message)?;
+        // Sleep for rate control
         std::thread::sleep(std::time::Duration::from_millis(500));
     }
     Ok(())
 }
+```
+
+#### 3. Combined Subscriber-Publisher (Obstacle Avoidance) Node
+```rust
+// Import necessary standard Rust libraries
+use std::{
+    env,
+    sync::{
+        // Arc: Atomic Reference Counting for thread-safe sharing
+        // Mutex: Mutual exclusion for safe data access
+        Arc, Mutex,
+    },
+};
+// Import ROS2 message types
+use sensor_msgs::msg::LaserScan as LaserScan;  // For laser scanner data
+use geometry_msgs::msg::Twist as Twist;        // For robot movement commands
+use anyhow::{Error, Result};                   // Error handling
+
+// Define structure for the obstacle avoidance node
+struct ObstacleAvoidance {
+    // Subscriber to laser scan data (Arc for thread-safe sharing)
+    _subscription: Arc<rclrs::Subscription<LaserScan>>,
+    // Publisher for movement commands
+    publication: Arc<rclrs::Publisher<Twist>>,
+    // Shared movement message protected by Mutex
+    twist_msg: Arc<Mutex<Twist>>
+}
+
+impl ObstacleAvoidance {
+    // Constructor for creating a new instance
+    pub fn new(node: &rclrs::Node) -> Result<Self, rclrs::RclrsError> {
+        // Initialize movement message with default values
+        let twist_msg = Arc::new(Mutex::new(Twist::default()));
+        // Create publisher for movement commands
+        let publication = node.create_publisher::<Twist>("cmd_vel", rclrs::QOS_PROFILE_DEFAULT)?;
+        // Clone twist_msg for use in subscription callback
+        let twist_msg_clone = Arc::clone(&twist_msg);
+
+        // Create subscription to laser scan data
+        let _subscription = node.create_subscription::<LaserScan, _>(
+            "scan",
+            rclrs::QOS_PROFILE_DEFAULT,
+            move |msg: LaserScan| {
+                // Lock the shared twist message for modification
+                let mut twist_msg = twist_msg_clone.lock().unwrap();
+
+                // Calculate laser scan parameters
+                let resolution = msg.ranges.len()/ 360;  // Points per degree
+                let lateral_scan_angle = 30;             // Angle for side detection
+                
+                // Get distances in different directions
+                let current_distance_left = msg.ranges[resolution*lateral_scan_angle];
+                let current_distance_front = msg.ranges[msg.ranges.len()/2];
+                let current_distance_back = msg.ranges[0];
+                let current_distance_right = msg.ranges[msg.ranges.len() - resolution*lateral_scan_angle];
+
+                // Log distances for debugging
+                println!("distance [m]: front '{:.2}', right '{:.2}', back '{:.2}', left '{:.2}'", 
+                    current_distance_front, current_distance_right, current_distance_back, current_distance_left);
+
+                // Set default movement (forward with slight rotation)
+                twist_msg.linear.x = 0.5;    // Forward velocity
+                twist_msg.linear.y = 0.0;    // No lateral movement
+                twist_msg.angular.z = -0.15; // Slight rotation
+
+                // Obstacle avoidance logic
+                if current_distance_front < 3.0 {    // Obstacle in front
+                    twist_msg.linear.x = -0.5;      // Move backward
+                }
+                if current_distance_right < 3.0 {    // Obstacle on right
+                    twist_msg.linear.y = -0.5;      // Move left
+                }
+                if current_distance_back < 3.0 {     // Obstacle behind
+                    twist_msg.linear.x = 0.5;       // Move forward
+                }
+                if current_distance_left < 3.0 {     // Obstacle on left
+                    twist_msg.linear.x = 0.5;       // Move forward
+                }
+            },
+        )?;
+
+        // Return new instance
+        Ok(Self{
+            _subscription,
+            publication,
+            twist_msg,
+        })
+    }
+
+    // Method to publish current movement command
+    pub fn publish(&self) {
+        let twist_msg = self.twist_msg.lock().unwrap();
+        let _ = self.publication.publish(&*twist_msg);
+    }
+}
+
+fn main() -> Result<(), Error> {
+    // Initialize ROS context
+    let context = rclrs::Context::new(env::args())?;
+    // Create ROS node
+    let node = rclrs::create_node(&context, "obstacle_avoidance")?;
+    // Create obstacle avoidance instance
+    let subscriber_node_one = ObstacleAvoidance::new(&node)?;
+
+    // Main loop
+    while context.ok() {
+        // Publish current movement command
+        subscriber_node_one.publish();
+        // Process callbacks once
+        let _ = rclrs::spin_once(node.clone(), Some(std::time::Duration::from_millis(500)));
+        // Sleep to control publish rate
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    }
+    Ok(())
+}
+```
+
+## Package Configuration
+
+### package.xml
+```xml
+<?xml version="1.0"?>
+<package format="3">
+  <name>rust_apps</name>
+  <version>0.0.0</version>
+  <description>ROS2 Rust main package</description>
+  <maintainer email="user@gmail.com">user</maintainer>
+  <license>MIT</license>
+
+  <depend>rclrs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+
+  <export>
+    <build_type>ament_cargo</build_type>
+  </export>
+</package>
+```
+
+### Cargo.toml
+```toml
+[package]
+name = "rust_apps"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rclrs = "*"
+anyhow = "1.0"
+sensor_msgs = "*"
+geometry_msgs = "*"
+
+[[bin]]
+name = "scan_subscriber_node"
+path = "src/scan_subscriber.rs"
+
+[[bin]]
+name = "cmd_vel_publisher_node"
+path = "src/cmd_vel_publisher.rs"
+
+[[bin]]
+name = "obstacle_avoidance_node"
+path = "src/obstacle_avoidance.rs"
 ```
 
 ## Building and Running
@@ -253,7 +355,7 @@ ros2 run rust_apps cmd_vel_publisher_node
 ros2 run rust_apps obstacle_avoidance_node
 ```
 
-3. Stop robot:
+3. Stop the robot:
 ```bash
 ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist \
     '{linear: {x: 0.0, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}'
