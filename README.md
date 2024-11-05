@@ -169,116 +169,129 @@ fn main() -> Result<(), Error> {
 ```
 
 #### 3. Combined Subscriber-Publisher (Obstacle Avoidance) Node
-```rust
-// Import necessary standard Rust libraries
+```rust 
+// Import error handling traits from anyhow crate
+use anyhow::{Error, Result};
+// Import ROS2 message types for robot velocity commands and laser scan data
+use geometry_msgs::msg::Twist;  // For robot movement commands
+use sensor_msgs::msg::LaserScan;  // For laser scanner data
+// Import standard library components for threading and environment variables
 use std::{
     env,
-    sync::{
-        // Arc: Atomic Reference Counting for thread-safe sharing
-        // Mutex: Mutual exclusion for safe data access
-        Arc, Mutex,
-    },
+    sync::{Arc, Mutex},  // Thread-safe shared memory primitives
 };
-// Import ROS2 message types
-use sensor_msgs::msg::LaserScan as LaserScan;  // For laser scanner data
-use geometry_msgs::msg::Twist as Twist;        // For robot movement commands
-use anyhow::{Error, Result};                   // Error handling
 
-// Define structure for the obstacle avoidance node
+/// Main structure for obstacle avoidance functionality
+/// Uses ROS2 subscription for laser data and publishes velocity commands
 struct ObstacleAvoidance {
-    // Subscriber to laser scan data (Arc for thread-safe sharing)
-    _subscription: Arc<rclrs::Subscription<LaserScan>>,
-    // Publisher for movement commands
-    publication: Arc<rclrs::Publisher<Twist>>,
-    // Shared movement message protected by Mutex
-    twist_msg: Arc<Mutex<Twist>>
+    _subscription: Arc<rclrs::Subscription<LaserScan>>,  // Subscriber for laser scan data
+    publication: Arc<rclrs::Publisher<Twist>>,          // Publisher for velocity commands
+    twist_msg: Arc<Mutex<Twist>>,                       // Thread-safe storage for current velocity command
 }
 
 impl ObstacleAvoidance {
-    // Constructor for creating a new instance
+    /// Creates a new ObstacleAvoidance instance
+    /// Sets up ROS2 publisher and subscriber with appropriate callbacks
     pub fn new(node: &rclrs::Node) -> Result<Self, rclrs::RclrsError> {
-        // Initialize movement message with default values
+        // Initialize default velocity command message with thread-safe access
         let twist_msg = Arc::new(Mutex::new(Twist::default()));
-        // Create publisher for movement commands
+        
+        // Create publisher for velocity commands on "cmd_vel" topic
         let publication = node.create_publisher::<Twist>("cmd_vel", rclrs::QOS_PROFILE_DEFAULT)?;
-        // Clone twist_msg for use in subscription callback
+        
+        // Clone twist message for use in callback
         let twist_msg_clone = Arc::clone(&twist_msg);
-
+        
         // Create subscription to laser scan data
         let _subscription = node.create_subscription::<LaserScan, _>(
-            "scan",
+            "scan",                    // Topic name
             rclrs::QOS_PROFILE_DEFAULT,
-            move |msg: LaserScan| {
-                // Lock the shared twist message for modification
+            move |msg: LaserScan| {    // Callback closure for processing laser scan data
+                // Get mutable access to velocity command
                 let mut twist_msg = twist_msg_clone.lock().unwrap();
-
-                // Calculate laser scan parameters
-                let resolution = msg.ranges.len()/ 360;  // Points per degree
-                let lateral_scan_angle = 30;             // Angle for side detection
                 
-                // Get distances in different directions
-                let current_distance_left = msg.ranges[resolution*lateral_scan_angle];
-                let current_distance_front = msg.ranges[msg.ranges.len()/2];
+                // Calculate angular resolution of laser scan
+                let resolution = msg.ranges.len() / 360;  // Points per degree
+                
+                // Define scan angle for lateral (side) measurements
+                let lateral_scan_angle = 30;  // Degrees
+                
+                // Extract distances in key directions
+                let current_distance_left = msg.ranges[resolution * lateral_scan_angle];
+                let current_distance_front = msg.ranges[msg.ranges.len() / 2];
                 let current_distance_back = msg.ranges[0];
-                let current_distance_right = msg.ranges[msg.ranges.len() - resolution*lateral_scan_angle];
-
-                // Log distances for debugging
-                println!("distance [m]: front '{:.2}', right '{:.2}', back '{:.2}', left '{:.2}'", 
-                    current_distance_front, current_distance_right, current_distance_back, current_distance_left);
-
-                // Set default movement (forward with slight rotation)
+                let current_distance_right =
+                    msg.ranges[msg.ranges.len() - resolution * lateral_scan_angle];
+                
+                // Print current distances for debugging
+                println!(
+                    "distance [m]: front '{:.2}', right '{:.2}', back '{:.2}', left '{:.2}'",
+                    current_distance_front,
+                    current_distance_right,
+                    current_distance_back,
+                    current_distance_left
+                );
+                
+                // Set default movement (forward and slight left turn)
                 twist_msg.linear.x = 0.5;    // Forward velocity
                 twist_msg.linear.y = 0.0;    // No lateral movement
-                twist_msg.angular.z = -0.15; // Slight rotation
-
+                twist_msg.angular.z = -0.15;  // Angular velocity (turning)
+                
                 // Obstacle avoidance logic
-                if current_distance_front < 3.0 {    // Obstacle in front
-                    twist_msg.linear.x = -0.5;      // Move backward
+                // Adjust velocity based on detected obstacles
+                if current_distance_front < 3.0 {
+                    twist_msg.linear.x = -0.5;  // Reverse if obstacle ahead
                 }
-                if current_distance_right < 3.0 {    // Obstacle on right
-                    twist_msg.linear.y = -0.5;      // Move left
+                if current_distance_right < 3.0 {
+                    twist_msg.linear.y = -0.5;  // Move left if obstacle on right
                 }
-                if current_distance_back < 3.0 {     // Obstacle behind
-                    twist_msg.linear.x = 0.5;       // Move forward
+                if current_distance_back < 3.0 {
+                    twist_msg.linear.x = 0.5;   // Move forward if obstacle behind
                 }
-                if current_distance_left < 3.0 {     // Obstacle on left
-                    twist_msg.linear.x = 0.5;       // Move forward
+                if current_distance_left < 3.0 {
+                    twist_msg.linear.x = 0.5;   // Move forward if obstacle on left
                 }
             },
         )?;
-
-        // Return new instance
-        Ok(Self{
+        
+        // Return constructed ObstacleAvoidance instance
+        Ok(Self {
             _subscription,
             publication,
             twist_msg,
         })
     }
-
-    // Method to publish current movement command
+    
+    /// Publishes current velocity command to ROS2 network
     pub fn publish(&self) {
         let twist_msg = self.twist_msg.lock().unwrap();
-        let _ = self.publication.publish(&*twist_msg);
+        self.publication.publish(&*twist_msg);
     }
 }
 
+/// Main function to initialize and run the ROS2 node
 fn main() -> Result<(), Error> {
-    // Initialize ROS context
+    // Initialize ROS2 context with command line arguments
     let context = rclrs::Context::new(env::args())?;
-    // Create ROS node
-    let node = rclrs::create_node(&context, "obstacle_avoidance")?;
+    
+    // Create new ROS2 node named "minimal_subscriber_one"
+    let node = rclrs::create_node(&context, "minimal_subscriber_one")?;
+    
     // Create obstacle avoidance instance
     let subscriber_node_one = ObstacleAvoidance::new(&node)?;
-
-    // Main loop
+    
+    // Main loop - runs while ROS2 context is valid
     while context.ok() {
-        // Publish current movement command
+        // Publish current velocity command
         subscriber_node_one.publish();
-        // Process callbacks once
-        let _ = rclrs::spin_once(node.clone(), Some(std::time::Duration::from_millis(500)));
-        // Sleep to control publish rate
+        
+        // Process callbacks once with timeout
+        rclrs::spin_once(node.clone(), Some(std::time::Duration::from_millis(500)));
+        
+        // Sleep to control update rate
         std::thread::sleep(std::time::Duration::from_millis(500));
     }
+    
     Ok(())
 }
 ```
