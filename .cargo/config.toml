@@ -1,89 +1,65 @@
 [patch.crates-io.rclrs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/rclrs/share/rclrs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/rclrs/share/rclrs/rust"
 
 [patch.crates-io.rosidl_runtime_rs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/rosidl_runtime_rs/share/rosidl_runtime_rs/rust"
-
-[patch.crates-io.rust_apps]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/rust_apps/share/rust_apps/rust"
-
-[patch.crates-io.champ_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/champ_msgs/share/champ_msgs/rust"
-
-[patch.crates-io.visualization_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/visualization_msgs/share/visualization_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/rosidl_runtime_rs/share/rosidl_runtime_rs/rust"
 
 [patch.crates-io.test_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/test_msgs/share/test_msgs/rust"
-
-[patch.crates-io.examples_rclrs_minimal_client_service]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/examples_rclrs_minimal_client_service/share/examples_rclrs_minimal_client_service/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/test_msgs/share/test_msgs/rust"
 
 [patch.crates-io.example_interfaces]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/example_interfaces/share/example_interfaces/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/example_interfaces/share/example_interfaces/rust"
 
 [patch.crates-io.action_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/action_msgs/share/action_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/action_msgs/share/action_msgs/rust"
 
 [patch.crates-io.unique_identifier_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/unique_identifier_msgs/share/unique_identifier_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/unique_identifier_msgs/share/unique_identifier_msgs/rust"
 
 [patch.crates-io.trajectory_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/trajectory_msgs/share/trajectory_msgs/rust"
-
-[patch.crates-io.stereo_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/stereo_msgs/share/stereo_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/trajectory_msgs/share/trajectory_msgs/rust"
 
 [patch.crates-io.std_srvs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/std_srvs/share/std_srvs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/std_srvs/share/std_srvs/rust"
 
 [patch.crates-io.shape_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/shape_msgs/share/shape_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/shape_msgs/share/shape_msgs/rust"
 
 [patch.crates-io.sensor_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/sensor_msgs/share/sensor_msgs/rust"
-
-[patch.crates-io.rust_pubsub]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/rust_pubsub/share/rust_pubsub/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/sensor_msgs/share/sensor_msgs/rust"
 
 [patch.crates-io.nav_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/nav_msgs/share/nav_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/nav_msgs/share/nav_msgs/rust"
 
 [patch.crates-io.diagnostic_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/diagnostic_msgs/share/diagnostic_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/diagnostic_msgs/share/diagnostic_msgs/rust"
 
 [patch.crates-io.geometry_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/geometry_msgs/share/geometry_msgs/rust"
-
-[patch.crates-io.examples_rclrs_minimal_pub_sub]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/examples_rclrs_minimal_pub_sub/share/examples_rclrs_minimal_pub_sub/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/geometry_msgs/share/geometry_msgs/rust"
 
 [patch.crates-io.actionlib_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/actionlib_msgs/share/actionlib_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/actionlib_msgs/share/actionlib_msgs/rust"
 
 [patch.crates-io.std_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/std_msgs/share/std_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/std_msgs/share/std_msgs/rust"
 
 [patch.crates-io.statistics_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/statistics_msgs/share/statistics_msgs/rust"
-
-[patch.crates-io.examples_rclrs_message_demo]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/examples_rclrs_message_demo/share/examples_rclrs_message_demo/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/statistics_msgs/share/statistics_msgs/rust"
 
 [patch.crates-io.rosgraph_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/rosgraph_msgs/share/rosgraph_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/rosgraph_msgs/share/rosgraph_msgs/rust"
 
 [patch.crates-io.rclrs_example_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/rclrs_example_msgs/share/rclrs_example_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/rclrs_example_msgs/share/rclrs_example_msgs/rust"
 
 [patch.crates-io.composition_interfaces]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/composition_interfaces/share/composition_interfaces/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/composition_interfaces/share/composition_interfaces/rust"
 
 [patch.crates-io.rcl_interfaces]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/rcl_interfaces/share/rcl_interfaces/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/rcl_interfaces/share/rcl_interfaces/rust"
 
 [patch.crates-io.lifecycle_msgs]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/lifecycle_msgs/share/lifecycle_msgs/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/lifecycle_msgs/share/lifecycle_msgs/rust"
 
 [patch.crates-io.builtin_interfaces]
-path = "/home/jsyun/Programming/ROS2/rust_ros2_workshop_copy/install/builtin_interfaces/share/builtin_interfaces/rust"
+path = "/home/jsyun/Programming/ROS2/Rust-ROS2/rust_ros2_workshop_champ_robot/install/builtin_interfaces/share/builtin_interfaces/rust"
